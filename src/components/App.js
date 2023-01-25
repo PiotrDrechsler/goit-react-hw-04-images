@@ -18,7 +18,6 @@ export const App = () => {
   const [showBtn, setShowBtn] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [largeImageURL, setLargeImageURL] = useState('');
-  const [error, setError] = useState(null);
 
   const onSubmit = e => {
     e.preventDefault();
@@ -60,7 +59,7 @@ export const App = () => {
           Notify.failure('No matches found!');
         }
       } catch (error) {
-        setError(error);
+        console.log('Error');
       } finally {
         setIsLoading(false);
       }
