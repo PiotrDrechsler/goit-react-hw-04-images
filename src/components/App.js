@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { Notify } from 'notiflix';
 
 import s from './App.module.css';
@@ -10,87 +10,73 @@ import { Loader } from './Loader/Loader';
 import { Modal } from './Modal/Modal';
 import { fetchHitsByQuery } from '../services/api';
 
-export class App extends Component {
-  constructor() {
-    super();
-    this.state = {
-      images: [],
-      query: '',
-      page: 1,
-      isLoading: false,
-      showBtn: false,
-      showModal: false,
-      largeImageURL: '',
-      error: null,
-    };
-  }
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showBtn, setShowBtn] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [error, setError] = useState(null);
 
-  onSubmit = e => {
+  const onSubmit = e => {
     e.preventDefault();
-    this.setState({
-      query: e.target.search.value,
-      isLoading: true,
-      images: [],
-    });
-    this.fetchGallery(e.target.search.value, this.state.page);
+    setQuery(e.target.search.value);
+    setIsLoading(true);
+    setImages([]);
+    setPage(1);
   };
 
-  onNextPage = () => {
-    this.setState({
-      page: this.state.page + 1,
-      isLoading: true,
-    });
-    this.fetchGallery(this.state.query, this.state.page + 1);
+  const onNextPage = () => {
+    setPage(prevState => prevState + 1);
+    setIsLoading(true);
   };
 
-  onClickImage = url => {
-    this.setState({ showModal: true, largeImageURL: url });
+  const onClickImage = url => {
+    setShowModal(true);
+    setLargeImageURL(url);
   };
 
-  onModalClose = () => {
-    this.setState({ showModal: false, largeImageURL: '' });
+  const onModalClose = () => {
+    setShowModal(false);
+    setLargeImageURL('');
   };
 
-  async fetchGallery(query, page) {
-    try {
-      const response = await fetchHitsByQuery(query, page);
-      this.setState(prevState => {
-        return {
-          images: [...prevState.images, ...response],
-        };
-      });
-      if (response.length < 12) {
-        this.setState({ showBtn: false });
+  useEffect(() => {
+    if (!query) return;
+
+    const fetchGallery = async searchQuery => {
+      try {
+        const response = await fetchHitsByQuery(searchQuery, page);
+        setImages(prevState => [...prevState, ...response]);
+        if (response.length < 12) {
+          setShowBtn(false);
+        }
+        if (response.length === 12) {
+          setShowBtn(true);
+        }
+        if (response.length === 0) {
+          Notify.failure('No matches found!');
+        }
+      } catch (error) {
+        setError(error);
+      } finally {
+        setIsLoading(false);
       }
-      if (response.length === 12) {
-        this.setState({ showBtn: true });
-      }
-      if (response.length === 0) {
-        Notify.failure('No matches found!');
-      }
-    } catch (error) {
-      this.setState({ error });
-    } finally {
-      this.setState({ isLoading: false });
-    }
-  }
+    };
+    fetchGallery(query, page);
+  }, [page, query]);
 
-  render() {
-    const { images, isLoading, showBtn, showModal, largeImageURL } = this.state;
-
-    return (
-      <div className={s.App}>
-        <Searchbar onSubmit={this.onSubmit} />
-        <ImageGallery images={images} onClickImage={this.onClickImage} />
-        {isLoading && <Loader />}
-        {showBtn && <Button onNextPage={this.onNextPage} />}
-        {showModal && (
-          <Modal
-            largeImageURL={largeImageURL}
-            onModalClose={this.onModalClose}
-          />
-        )}
-      </div>
-    );
-  }
-}
+  return (
+    <div className={s.App}>
+      <Searchbar onSubmit={onSubmit} />
+      <ImageGallery images={images} onClickImage={onClickImage} />
+      {isLoading && <Loader />}
+      {showBtn && <Button onNextPage={onNextPage} />}
+      {showModal && (
+        <Modal largeImageURL={largeImageURL} onModalClose={onModalClose} />
+      )}
+    </div>
+  );
+};
